@@ -13,7 +13,7 @@ static void ToClipper(godot_pool_vector2_array items, ClipperLib::Path& Path)
 		const auto x = api->godot_vector2_get_x(&item);
 		const auto y = api->godot_vector2_get_y(&item);
 
-		Path[i] = ClipperLib::IntPoint{ (ClipperLib::long64)(x * 10000), (ClipperLib::long64)(y * 10000) };
+		Path[i] = ClipperLib::IntPoint{ ((ClipperLib::long64)x * 10000), ((ClipperLib::long64)y * 10000) };
 	}
 }
 
@@ -49,7 +49,6 @@ godot_array Difference(godot_pool_vector2_array subject, godot_pool_vector2_arra
 
 		Clipper.Execute(ClipperLib::ctDifference, T);
 	}
-
 
 	const auto count = T.ChildCount();
 
