@@ -1,0 +1,13 @@
+[general]
+
+singleton=false
+load_once=true
+symbol_prefix="godot_"
+
+[entry]
+
+Windows.32="res://bin/libgdclip.dll"
+
+[dependencies]
+
+Windows.32=[]
