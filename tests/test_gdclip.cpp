@@ -289,6 +289,82 @@ static void test_no_subthreshold_fragments()
 	}
 }
 
+// One hit can sever the asteroid into many pieces, not just two: a '+'-shaped
+// blast (two crossing bars, unioned) leaves four corner fragments.
+static void test_splits_into_many()
+{
+	Paths cross{ rect(95, 40, 105, 160), rect(40, 95, 160, 105) };
+	auto r = gdclip::Difference(asteroid(), cross);
+	CHECK(r.size() == 4);
+	CHECK(holeCount(r) == 0);
+}
+
+// A blast that never touches the asteroid leaves it whole and unchanged.
+static void test_blast_misses()
+{
+	auto r = gdclip::Difference(asteroid(), Paths{ circle(400, 400, 30) });
+	CHECK(r.size() == 1);
+	CHECK(holeCount(r) == 0);
+	CHECK_RANGE(totalArea(r), asteroidArea() - 1, asteroidArea() + 1);
+}
+
+// Several disjoint bodies passed as one subject stay independent, and a blast
+// on one of them does not affect the others.
+static void test_multiple_disjoint_bodies()
+{
+	Paths bodies{ circle(50, 100, 20), circle(150, 100, 20) };
+	auto r = gdclip::Difference(bodies, Paths{ circle(50, 100, 8) }); // hole left body
+	CHECK(r.size() == 2);
+	CHECK(holeCount(r) == 1); // only the hit body is hollowed
+}
+
+// An asteroid carrying several holes keeps all of them through a hit elsewhere.
+static void test_multiple_holes_preserved()
+{
+	Paths holed{ circle(100, 100, 50), circle(80, 100, 8), circle(120, 100, 8) };
+	auto r = gdclip::Difference(holed, Paths{ circle(100, 145, 15) }); // rim bite
+	CHECK(r.size() == 1);
+	CHECK(holeCount(r) == 2);
+}
+
+// Winding order of inputs must not matter: reversing every contour yields the
+// same result (clip winding is forced; the subject uses orientation-agnostic
+// even-odd fill).
+static void test_winding_independence()
+{
+	Path subj = circle(100, 100, 50);
+	Path blast = circle(120, 100, 25);
+	auto normal = gdclip::Difference(Paths{ subj }, Paths{ blast });
+
+	ClipperLib::ReversePath(subj);
+	ClipperLib::ReversePath(blast);
+	auto reversed = gdclip::Difference(Paths{ subj }, Paths{ blast });
+
+	CHECK(normal.size() == reversed.size());
+	CHECK_RANGE(totalArea(reversed), totalArea(normal) - 0.001, totalArea(normal) + 0.001);
+}
+
+// Depth-3 nesting in a single call: a ring of blasts severs the core (island),
+// and a central blast punches a hole into that island. Both the outer rim and
+// the island must come back, each with its own hole.
+static void test_deep_nesting()
+{
+	Paths blasts;
+	const int n = 16;
+	for (int i = 0; i < n; ++i)
+	{
+		const double a = 2.0 * M_PI * i / n;
+		blasts.push_back(circle(100 + 28 * std::cos(a), 100 + 28 * std::sin(a), 11));
+	}
+	blasts.push_back(circle(100, 100, 5)); // hole the severed core
+
+	auto r = gdclip::Difference(asteroid(), blasts);
+	CHECK(r.size() == 2);     // outer rim + inner core island
+	CHECK(holeCount(r) == 2); // rim's crater ring + the core's central hole
+	for (size_t i = 0; i < r.size(); ++i)
+		CHECK(r[i].holes.size() == 1);
+}
+
 int main()
 {
 	std::printf("gdclip unit tests\n");
@@ -297,6 +373,12 @@ int main()
 	run("interior hit -> donut (1 hole)", test_interior_hit_makes_hole);
 	run("edge bite -> 1 solid piece", test_edge_bite_no_hole);
 	run("slice -> 2 pieces", test_slice_splits_into_two);
+	run("one hit -> many pieces", test_splits_into_many);
+	run("blast misses -> unchanged", test_blast_misses);
+	run("multiple disjoint bodies", test_multiple_disjoint_bodies);
+	run("multiple holes preserved", test_multiple_holes_preserved);
+	run("winding independence", test_winding_independence);
+	run("deep nesting (hole in island)", test_deep_nesting);
 	run("engulfed -> destroyed", test_engulfed_is_destroyed);
 	run("re-hit holed asteroid splits", test_rehit_holed_asteroid_splits);
 	run("multiple blasts each crater", test_multiple_blasts_each_crater);
