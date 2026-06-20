@@ -24,6 +24,9 @@ because they mean different things, which is the whole point:
 * **`subject` — the asteroid.** Its polygons form one region where *nesting*
   defines holes: an outline contains a hole, a hole may contain a solid island,
   and so on to any depth. Pass a single outline, or `[outline, hole, hole, …]`.
+  The contours should be *simple* (non-self-intersecting); a self-crossing
+  outline would, under even-odd fill, sprout a phantom hole at the crossing.
+  Pieces returned by `diff` are always simple, so re-feeding them is safe.
 * **`clip` — the explosions.** Each polygon is an independent solid blast, and
   they are **unioned**. Two overlapping blasts therefore destroy their overlap
   (all matter in either blast is gone); they do *not* punch a hole in each
@@ -100,9 +103,11 @@ func spawn_asteroid(rings: Array):
 ## Coordinate precision
 
 Clipper works on integers, so coordinates are scaled by `256` and **rounded**
-(not truncated) on the way in, giving ~1/256 px precision. Keep play-field
-coordinates within roughly ±32 million units to stay inside Clipper's fast
-arithmetic range.
+(not truncated) on the way in, giving ~1/256 px precision. Coordinates up to
+roughly ±4 million px stay on Clipper's fast arithmetic path (its `loRange` of
+2^30 ÷ 256); larger play-fields still compute correctly but fall back to slower
+128-bit math, and only become invalid past ~1.8e16 px. For an Asteroids-style
+game none of this is a concern.
 
 ## Building
 

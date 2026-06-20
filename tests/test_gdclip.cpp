@@ -256,6 +256,39 @@ static void test_degenerate_inputs()
 	CHECK(gdclip::Difference(asteroid(), Paths{ line }).size() == 1);
 }
 
+// Invariant: every emitted contour (each piece outline and each hole) is a
+// real, simple polygon of at least MIN_AREA_PX2 - no dust, and in particular no
+// phantom sub-threshold island leaking out of a parent that was itself dropped.
+// Stress it with a messy mix of overlapping, ringed and tiny blasts.
+static void test_no_subthreshold_fragments()
+{
+	Paths blasts;
+	// A ring that severs the core (produces islands)...
+	const int n = 16;
+	for (int i = 0; i < n; ++i)
+	{
+		const double a = 2.0 * M_PI * i / n;
+		blasts.push_back(circle(100 + 28 * std::cos(a), 100 + 28 * std::sin(a), 11));
+	}
+	// ...plus a scatter of tiny sub-pixel blasts that could spawn slivers.
+	blasts.push_back(circle(70, 70, 0.4));
+	blasts.push_back(circle(130, 130, 0.4));
+	blasts.push_back(rect(99.9, 99.9, 100.1, 100.1));
+
+	auto r = gdclip::Difference(asteroid(), blasts);
+	CHECK(!r.empty());
+	for (size_t i = 0; i < r.size(); ++i)
+	{
+		CHECK(r[i].outline.size() >= 3);
+		CHECK(polyArea(r[i].outline) >= gdclip::MIN_AREA_PX2);
+		for (size_t h = 0; h < r[i].holes.size(); ++h)
+		{
+			CHECK(r[i].holes[h].size() >= 3);
+			CHECK(polyArea(r[i].holes[h]) >= gdclip::MIN_AREA_PX2);
+		}
+	}
+}
+
 int main()
 {
 	std::printf("gdclip unit tests\n");
@@ -269,6 +302,7 @@ int main()
 	run("multiple blasts each crater", test_multiple_blasts_each_crater);
 	run("overlapping blasts union", test_overlapping_blasts_union);
 	run("severed core -> island piece", test_severed_core_becomes_island);
+	run("no sub-threshold dust fragments", test_no_subthreshold_fragments);
 	run("sub-pixel shift changes result", test_subpixel_shift_changes_result);
 	run("degenerate inputs are safe", test_degenerate_inputs);
 

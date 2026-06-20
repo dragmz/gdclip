@@ -38,7 +38,13 @@ namespace gdclip
 						piece.holes.push_back(hpath);
 				}
 
-				// Islands floating inside this hole are separate fragments.
+				// Islands floating inside this hole are separate fragments, so
+				// recurse regardless of `keep`. This is safe even when the parent
+				// was dropped: an island is nested inside this hole inside the
+				// parent outline, so its area is strictly smaller than the
+				// outline's. If the outline was dropped for being sub-MIN_AREA
+				// dust (or collapsed to <3 points, i.e. ~zero area), every
+				// descendant is smaller still and fails its own KeepPath below.
 				for (int j = 0; j < hole->ChildCount(); ++j)
 					EmitPiece(hole->Childs[j], out);
 			}

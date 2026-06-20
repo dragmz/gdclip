@@ -9,8 +9,9 @@ namespace gdclip
 {
 	// Clipper works on integers, so one pixel is mapped to SCALE integer units;
 	// 1/SCALE is the achievable sub-pixel precision. Kept modest so coordinates
-	// stay inside Clipper's fast (non-Int128) range even for a large play-field,
-	// while still being smooth enough for round explosions.
+	// stay on Clipper's fast (non-Int128) path for a generous play-field - its
+	// loRange of 2^30 over SCALE is about +/-4 million px - while still being
+	// smooth enough for round explosions.
 	constexpr double SCALE = 256.0;
 
 	// After clipping, merge away edges shorter than this many pixels (and the
