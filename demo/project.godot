@@ -1,0 +1,10 @@
+; Minimal Godot 4 project used to load the gdclip GDExtension and exercise the
+; `diff` method through the real engine. Run headless via
+; tests/run_integration_tests.sh.
+
+config_version=5
+
+[application]
+
+config/name="gdclip GDExtension tests"
+config/features=PackedStringArray("4.3")

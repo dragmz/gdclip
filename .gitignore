@@ -347,3 +347,20 @@ healthchecksdb
 
 # Backup folder for Package Reference Convert tool in Visual Studio 2017
 MigrationBackup/
+
+# --- gdclip build artifacts ---
+# SCons / godot-cpp build output
+*.os
+*.o
+*.obj
+.sconsign.dblite
+# Compiled GDExtension libraries (rebuilt via SCons)
+demo/bin/*.so
+demo/bin/*.dll
+demo/bin/*.dylib
+demo/bin/*.framework/
+# Godot editor import cache for the test project
+demo/.godot/
+# Engine-free unit-test binaries
+tests/test_gdclip
+tests/build/
