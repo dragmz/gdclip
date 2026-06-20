@@ -69,15 +69,20 @@ extern "C" {
 	godot_variant gdclip_diff(godot_object *p_instance, void *p_method_data,
 		void *p_user_data, int p_num_args, godot_variant **p_args) {
 
-		godot_pool_vector2_array subject = api->godot_variant_as_pool_vector2_array(p_args[0]);
-		godot_pool_vector2_array clip = api->godot_variant_as_pool_vector2_array(p_args[1]);
-
-		auto result = Difference(subject, clip);
-
-		api->godot_pool_vector2_array_destroy(&subject);
-		api->godot_pool_vector2_array_destroy(&clip);
-
 		godot_variant ret;
+
+		if (p_num_args < 2) {
+			// Without both a subject and a clip there is nothing to cut; hand
+			// back an empty piece list rather than dereferencing missing args.
+			godot_array empty;
+			api->godot_array_new(&empty);
+			api->godot_variant_new_array(&ret, &empty);
+			api->godot_array_destroy(&empty);
+			return ret;
+		}
+
+		godot_array result = Difference(p_args[0], p_args[1]);
+
 		api->godot_variant_new_array(&ret, &result);
 		api->godot_array_destroy(&result);
 
