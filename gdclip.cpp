@@ -46,16 +46,13 @@ namespace
 		}
 	}
 
-	// Append the polygon(s) held by `arg` to `clipper` as one region. The first
-	// path is the outer outline (forced to positive orientation), any further
-	// paths are holes (forced to negative orientation). Forcing the winding makes
-	// the region unambiguous regardless of what order the caller wound its
-	// points in, and pairs with pftNonZero in Difference() to give exactly
-	// "outline minus holes".
-	void AddRegion(ClipperLib::Clipper &clipper, const godot_variant *arg, ClipperLib::PolyType type)
+	// Pull every contour out of an operand. An operand may be a single
+	// PoolVector2Array (one polygon) or an Array of PoolVector2Array (several
+	// polygons). No winding/solid-vs-hole decision is made here; that is the
+	// caller's job and depends on whether the operand is the asteroid or the
+	// explosion (see Difference).
+	void CollectContours(const godot_variant *arg, ClipperLib::Paths &out)
 	{
-		ClipperLib::Paths paths;
-
 		if (api->godot_variant_get_type(arg) == GODOT_VARIANT_TYPE_ARRAY)
 		{
 			godot_array arr = api->godot_variant_as_array(arg);
@@ -67,7 +64,8 @@ namespace
 
 				ClipperLib::Path p;
 				PathFromPool(&pa, p);
-				paths.push_back(p);
+				if (p.size() >= 3) // a line or a point bounds no area
+					out.push_back(p);
 
 				api->godot_pool_vector2_array_destroy(&pa);
 				api->godot_variant_destroy(&e);
@@ -80,22 +78,10 @@ namespace
 
 			ClipperLib::Path p;
 			PathFromPool(&pa, p);
-			paths.push_back(p);
+			if (p.size() >= 3)
+				out.push_back(p);
 
 			api->godot_pool_vector2_array_destroy(&pa);
-		}
-
-		for (size_t i = 0; i < paths.size(); ++i)
-		{
-			ClipperLib::Path &p = paths[i];
-			if (p.size() < 3)
-				continue; // a line or a point bounds no area
-
-			const bool wantPositive = (i == 0); // outline solid, the rest holes
-			if (ClipperLib::Orientation(p) != wantPositive)
-				ClipperLib::ReversePath(p);
-
-			clipper.AddPath(p, type, true);
 		}
 	}
 
@@ -186,17 +172,37 @@ godot_array Difference(const godot_variant *subject, const godot_variant *clip)
 	godot_array result;
 	api->godot_array_new(&result);
 
+	ClipperLib::Paths subjectPaths;
+	ClipperLib::Paths clipPaths;
+	CollectContours(subject, subjectPaths);
+	CollectContours(clip, clipPaths);
+
 	ClipperLib::PolyTree tree;
 	{
 		ClipperLib::Clipper clipper;
-		AddRegion(clipper, subject, ClipperLib::ptSubject);
-		AddRegion(clipper, clip, ClipperLib::ptClip);
 
-		// PolyTree (not Paths) so the outline/hole/island nesting is preserved;
-		// pftNonZero so the forced winding from AddRegion means "outline minus
-		// holes" for both operands.
+		// Asteroid: a set of contours where nesting defines holes (outline >
+		// hole > island > ...). Even-odd fill resolves that nesting at any depth
+		// without the caller having to label or wind anything a particular way.
+		for (size_t i = 0; i < subjectPaths.size(); ++i)
+			clipper.AddPath(subjectPaths[i], ClipperLib::ptSubject, true);
+
+		// Explosions: each contour is its own solid blast. They must be unioned,
+		// not nested, so that two overlapping blasts destroy their overlap
+		// instead of leaving it intact. Force every blast to the same winding and
+		// use non-zero fill, which is exactly the union of all of them.
+		for (size_t i = 0; i < clipPaths.size(); ++i)
+		{
+			ClipperLib::Path &p = clipPaths[i];
+			if (!ClipperLib::Orientation(p))
+				ClipperLib::ReversePath(p);
+			clipper.AddPath(p, ClipperLib::ptClip, true);
+		}
+
+		// PolyTree (not Paths) so the outline/hole/island nesting of the result
+		// is preserved for EmitPiece to walk.
 		clipper.Execute(ClipperLib::ctDifference, tree,
-			ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+			ClipperLib::pftEvenOdd, ClipperLib::pftNonZero);
 	}
 
 	// Every top-level node of a Difference result is a solid outer contour.

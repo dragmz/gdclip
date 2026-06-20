@@ -13,13 +13,21 @@ GDCLIP.diff(subject, clip) -> Array
 
 ### Inputs
 
-Both `subject` (the asteroid) and `clip` (the explosion) accept either form:
+Both `subject` (the asteroid) and `clip` (the explosions) accept either form:
 
-* a `PoolVector2Array` — a single solid outline, or
-* an `Array` of `PoolVector2Array` — an outline followed by its holes.
+* a `PoolVector2Array` — a single polygon, or
+* an `Array` of `PoolVector2Array` — several polygons.
 
-Winding order does not matter; the library forces the first ring solid and the
-rest into holes for you.
+Winding order never matters. The two operands are interpreted differently
+because they mean different things, which is the whole point:
+
+* **`subject` — the asteroid.** Its polygons form one region where *nesting*
+  defines holes: an outline contains a hole, a hole may contain a solid island,
+  and so on to any depth. Pass a single outline, or `[outline, hole, hole, …]`.
+* **`clip` — the explosions.** Each polygon is an independent solid blast, and
+  they are **unioned**. Two overlapping blasts therefore destroy their overlap
+  (all matter in either blast is gone); they do *not* punch a hole in each
+  other. Pass one blast, or `[blast, blast, …]` to apply many hits at once.
 
 ### Output
 
@@ -40,6 +48,8 @@ What you get back depends on the geometry, with no special-casing needed:
 | Explosion fully inside | one piece with a hole (a donut) |
 | Explosion cuts clean through | two (or more) separate pieces |
 | A chunk is severed all around | the chunk comes back as its own piece |
+| Several blasts at once | each carves its own crater in one call |
+| Overlapping blasts | their union is removed, overlap and all |
 | Asteroid fully engulfed | empty array (destroyed) |
 
 Pulverised slivers (area `< 1 px²`) are dropped, and the micro-fragments boolean
