@@ -24,6 +24,9 @@
     <ClCompile Include="gdclip_c.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gdclip_core.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="libgdclip.gdnlib">
@@ -35,6 +38,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="gdclip.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gdclip_core.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -107,6 +107,30 @@ arithmetic range.
 ## Building
 
 The repository ships a Visual Studio solution (`gdclip.sln`) targeting Windows.
-The output `libgdclip.dll` is referenced by `libgdclip.gdnlib`. The two source
-files of interest are `gdclip.cpp` (the geometry) and `gdclip_c.cpp` (the
-GDNative class registration and `diff` entry point).
+The output `libgdclip.dll` is referenced by `libgdclip.gdnlib`. The source files
+are:
+
+* `gdclip_core.{hpp,cpp}` — the pure, Godot-free geometry (the asteroid maths).
+* `gdclip.cpp` — the GDNative marshalling that converts Godot polygons to and
+  from the core's Clipper paths.
+* `gdclip_c.cpp` — GDNative class registration and the `diff` entry point.
+
+## Tests
+
+The geometry lives in `gdclip_core` precisely so it can be unit tested without a
+Godot runtime. The tests in `tests/test_gdclip.cpp` call the real
+`gdclip::Difference` and cover every destruction case: interior hits (holes),
+edge bites, slicing into pieces, multiple and overlapping blasts (union),
+severed cores becoming islands, re-hitting an already-holed asteroid, sub-pixel
+precision, and degenerate inputs.
+
+Run them any of these ways (no external test framework required):
+
+```sh
+tests/run_tests.sh                 # direct compile + run (Linux/macOS)
+tests\run_tests.bat                # same, MSVC (Developer Command Prompt)
+
+cmake -S tests -B tests/build      # or via CMake/CTest
+cmake --build tests/build
+ctest --test-dir tests/build --output-on-failure
+```

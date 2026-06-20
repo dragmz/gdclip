@@ -1,0 +1,5 @@
+# Test build artifacts
+build/
+test_gdclip
+test_gdclip.exe
+*.obj

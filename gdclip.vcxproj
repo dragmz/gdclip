@@ -75,6 +75,7 @@
     <ClCompile Include="clipper\clipper.cpp" />
     <ClCompile Include="gdclip_c.cpp" />
     <ClCompile Include="gdclip.cpp" />
+    <ClCompile Include="gdclip_core.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="libgdclip.gdnlib">
@@ -84,6 +85,7 @@
   <ItemGroup>
     <ClInclude Include="clipper\clipper.hpp" />
     <ClInclude Include="gdclip.h" />
+    <ClInclude Include="gdclip_core.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
